@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+import requests
+import uuid
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -7,6 +9,21 @@ app = Flask(__name__)
 users = {}
 matches = {}
 messages = {}
+
+# In-memory data storage for call invitations and active calls
+call_invitations = {}
+active_calls = {} # Stores active calls, key: tuple(sorted(user_ids)), value: {'room_name': '...', 'start_time': '...'}
+
+# Possible states for a call invitation
+CALL_STATE_PENDING = 'pending'
+CALL_STATE_ACCEPTED = 'accepted'
+CALL_STATE_REJECTED = 'rejected'
+CALL_STATE_ENDED = 'ended' # State for when a call is finished
+
+# Twilio Credentials (Replace with your actual credentials)
+TWILIO_ACCOUNT_SID = 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+TWILIO_API_KEY_SID = 'SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+TWILIO_API_SECRET = 'your_twilio_api_secret'
 
 # User profile endpoint
 @app.route('/users', methods=['POST'])
@@ -65,6 +82,103 @@ def get_messages(user_id, sender_id):
     # Sort messages by timestamp if available in message data (not implemented in this basic example)
     return jsonify(conversation), 200
 
+# Video calling endpoint: Send call invitation
+@app.route('/call/invite/<caller_id>/<recipient_id>', methods=['POST'])
+def send_call_invite(caller_id, recipient_id):
+    # Check if both caller and recipient exist
+    if caller_id not in users or recipient_id not in users:
+        return jsonify({"message": "Caller or recipient not found"}), 404
+
+    # Check if either user is already involved in a pending invitation or active call
+    # Check pending invitations
+    for invitation_key in call_invitations:
+        inviter, invited = invitation_key
+        if (inviter == caller_id or invited == caller_id or
+            inviter == recipient_id or invited == recipient_id):
+            if call_invitations[invitation_key]['state'] == CALL_STATE_PENDING:
+                return jsonify({"message": "User is currently unavailable"}), 409
+
+    # Check active calls
+    for call_key in active_calls:
+        user1, user2 = call_key
+        if (user1 == caller_id or user2 == caller_id or
+            user1 == recipient_id or user2 == recipient_id):
+            return jsonify({"message": "User is currently in a call"}), 409
+
+    # Create a unique key for the invitation
+    invitation_key = tuple(sorted((caller_id, recipient_id)))
+
+    # Create the new invitation
+    call_invitations[invitation_key] = {
+        "caller_id": caller_id,
+        "recipient_id": recipient_id,
+        "state": CALL_STATE_PENDING
+    }
+
+    return jsonify({"message": "Call invitation sent successfully"}), 201
+
+# Video calling endpoint: Create or get a call room
+@app.route('/call/room/<user1_id>/<user2_id>', methods=['POST'])
+def create_or_get_call_room(user1_id, user2_id):
+    # Check if both users exist
+    if user1_id not in users or user2_id not in users:
+        return jsonify({"message": "One or both users not found"}), 404
+
+    # Create a unique key for the call
+    call_key = tuple(sorted((user1_id, user2_id)))
+
+    # Check if an active room already exists for this pair
+    if call_key in active_calls:
+        return jsonify({"room_name": active_calls[call_key]['room_name']}), 200
+
+    # If no active room, create a new one using Twilio API
+    # In a real application, you would make an API call to Twilio here
+    # Example placeholder for creating a room:
+    room_name = f"match-{uuid.uuid4()}" # Generate a unique room name
+
+    # Store the new room information
+    active_calls[call_key] = {
+        "room_name": room_name,
+        "start_time": "timestamp_here" # Add a timestamp in a real app
+    }
+
+    return jsonify({"room_name": room_name}), 201
+
+# Video calling endpoint: Generate access token
+@app.route('/call/token/<user_id>/<room_name>', methods=['GET'])
+def generate_call_token(user_id, room_name):
+    # Check if the user exists
+    if user_id not in users:
+        return jsonify({"message": "User not found"}), 404
+
+    # Check if the room exists and is active (basic check based on active_calls)
+    room_found = False
+    for call_key in active_calls:
+        if active_calls[call_key]['room_name'] == room_name:
+            room_found = True
+            break
+
+    if not room_found:
+         # Also check pending invitations to see if a room is about to be created
+         invitation_found = False
+         for invitation_key, invitation_data in call_invitations.items():
+             if (invitation_data['caller_id'] == user_id or invitation_data['recipient_id'] == user_id) and invitation_data['state'] == CALL_STATE_PENDING:
+                 # This is a simplification; in a real app, you'd need a more robust way to link pending invites to potential rooms
+                 invitation_found = True
+                 break
+         if not invitation_found:
+            return jsonify({"message": "Room not found or not active"}), 404
+
+
+    # Generate Twilio Access Token
+    # In a real application, use the Twilio Python library to generate a token
+    # Example placeholder for generating a token:
+    token = f"fake_twilio_token_for_{user_id}_in_{room_name}"
+
+    return jsonify({"token": token}), 200
+
+
 if __name__ == '__main__':
     # In a real application, do not run with debug=True in production
     app.run(debug=True)
+
