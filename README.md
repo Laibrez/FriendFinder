@@ -2,6 +2,51 @@
 
 A full-stack web application designed to help college students and young adults create genuine friendships based on shared interests, hobbies, and personal goals. FriendFinder fosters real social connections — not dating — making it easier for new or introverted students to meet people around them.
 
+## 💡 Why FriendFinder?
+
+College can be isolating, especially for:
+- **New students** adjusting to campus life
+- **Transfer students** looking to build a new social circle
+- **Introverted students** who find it hard to make the first move
+- **Students with niche interests** wanting to find like-minded peers
+
+FriendFinder solves this by:
+- 🎯 Matching you with people who share your interests and goals
+- 📅 Facilitating real-world meetups through events
+- 💬 Enabling easy communication before meeting in person
+- 🎓 Keeping everything college-focused and friendship-oriented
+
+## 🚀 Quick Start
+
+### Automated Setup (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/Laibrez/FriendFinder.git
+cd FriendFinder
+
+# Run the setup script
+./setup.sh
+
+# Update backend/.env with your MongoDB URI
+
+# Start both frontend and backend
+npm run dev
+```
+
+### Docker Setup (Alternative)
+
+```bash
+# Clone the repository
+git clone https://github.com/Laibrez/FriendFinder.git
+cd FriendFinder
+
+# Start all services with Docker Compose
+docker-compose up
+
+# Access the application at http://localhost:3000
+```
+
 ## Features
 
 ### 🔐 User Authentication
@@ -36,6 +81,15 @@ A full-stack web application designed to help college students and young adults 
 - Real-time chat using Socket.io
 - Conversation history
 - Unread message indicators
+
+## 📸 Screenshots
+
+> Screenshots coming soon! The application features a clean, modern interface with:
+> - Beautiful gradient login/signup pages
+> - Intuitive dashboard with quick actions
+> - Card-based layouts for friends and events
+> - Real-time messaging interface
+> - Responsive design that works on all devices
 
 ## Tech Stack
 
